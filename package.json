@@ -1,0 +1,22 @@
+{
+  "name": "centy-desktop",
+  "version": "0.1.0",
+  "description": "Centy Desktop - Local-first issue and documentation tracker",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter centy-app dev & pnpm tauri dev",
+    "build": "pnpm build:frontend && pnpm build:sidecar && pnpm tauri build",
+    "build:frontend": "pnpm --filter centy-app build",
+    "build:sidecar": "./scripts/build-sidecar.sh",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  },
+  "packageManager": "pnpm@10.24.0",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

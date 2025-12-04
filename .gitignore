@@ -21,3 +21,10 @@ coverage/
 .claude-container/
 .claude-revert-backup-*/
 eslint-report.json
+
+# Tauri
+src-tauri/target/
+src-tauri/bin/centy-daemon-*
+
+# Rust
+Cargo.lock
