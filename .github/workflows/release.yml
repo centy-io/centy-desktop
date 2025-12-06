@@ -35,6 +35,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -138,36 +140,33 @@ jobs:
 
       - name: Install frontend dependencies
         run: pnpm install
-        working-directory: centy-desktop
 
       - name: Download sidecar
         uses: actions/download-artifact@v4
         with:
           name: sidecar-${{ matrix.sidecar_suffix }}
-          path: centy-desktop/src-tauri/bin/
+          path: src-tauri/bin/
 
       - name: Prepare sidecar (Unix)
         if: matrix.os != 'windows-latest'
         run: |
-          mv centy-desktop/src-tauri/bin/centy-daemon centy-desktop/src-tauri/bin/centy-daemon-${{ matrix.sidecar_suffix }}
-          chmod +x centy-desktop/src-tauri/bin/centy-daemon-${{ matrix.sidecar_suffix }}
+          mv src-tauri/bin/centy-daemon src-tauri/bin/centy-daemon-${{ matrix.sidecar_suffix }}
+          chmod +x src-tauri/bin/centy-daemon-${{ matrix.sidecar_suffix }}
 
       - name: Prepare sidecar (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          Move-Item "centy-desktop/src-tauri/bin/centy-daemon.exe" "centy-desktop/src-tauri/bin/centy-daemon-${{ matrix.sidecar_suffix }}.exe"
+          Move-Item "src-tauri/bin/centy-daemon.exe" "src-tauri/bin/centy-daemon-${{ matrix.sidecar_suffix }}.exe"
 
       - name: Build frontend
         run: pnpm build:frontend
-        working-directory: centy-desktop
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          projectPath: centy-desktop
           tagName: ${{ github.ref_name }}
           releaseName: "Centy Desktop ${{ github.ref_name }}"
           releaseBody: |

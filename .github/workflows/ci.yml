@@ -42,19 +42,15 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
-        working-directory: centy-desktop
 
       - name: Run frontend tests
         run: pnpm --filter centy-app test
-        working-directory: centy-desktop
 
       - name: Lint frontend
         run: pnpm --filter centy-app lint
-        working-directory: centy-desktop
 
       - name: Build frontend
         run: pnpm build:frontend
-        working-directory: centy-desktop
 
   build-check:
     name: Build Check (${{ matrix.platform }})
@@ -97,23 +93,18 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             src-tauri/target
-            centy-daemon/target
           key: ${{ runner.os }}-cargo-ci-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-ci-
 
       - name: Install dependencies
         run: pnpm install
-        working-directory: centy-desktop
 
       - name: Build sidecar
         run: pnpm build:sidecar
-        working-directory: centy-desktop
 
       - name: Build frontend
         run: pnpm build:frontend
-        working-directory: centy-desktop
 
       - name: Check Tauri build
         run: pnpm tauri build --debug --ci
-        working-directory: centy-desktop
