@@ -10,7 +10,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  DAEMON_VERSION: v0.1.1
+  DAEMON_VERSION: v0.1.2
 
 jobs:
   test:
