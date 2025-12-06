@@ -10,6 +10,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  DAEMON_VERSION: v0.1.1
 
 jobs:
   test:
@@ -18,8 +19,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -63,15 +62,19 @@ jobs:
         include:
           - platform: linux
             os: ubuntu-22.04
+            daemon_target: x86_64-unknown-linux-gnu
+            daemon_archive: tar.gz
           - platform: macos
             os: macos-latest
+            daemon_target: aarch64-apple-darwin
+            daemon_archive: tar.gz
           - platform: windows
             os: windows-latest
+            daemon_target: x86_64-pc-windows-msvc
+            daemon_archive: zip
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - name: Install Linux dependencies
         if: matrix.platform == 'linux'
@@ -104,8 +107,33 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build sidecar
-        run: pnpm build:sidecar
+      - name: Download daemon sidecar (Unix)
+        if: matrix.platform != 'windows'
+        run: |
+          mkdir -p src-tauri/bin
+          gh release download ${{ env.DAEMON_VERSION }} \
+            --repo centy-io/centy-daemon \
+            --pattern "centy-daemon-${{ env.DAEMON_VERSION }}-${{ matrix.daemon_target }}.${{ matrix.daemon_archive }}" \
+            --output daemon.${{ matrix.daemon_archive }}
+          tar -xzf daemon.${{ matrix.daemon_archive }}
+          mv centy-daemon src-tauri/bin/centy-daemon-${{ matrix.daemon_target }}
+          chmod +x src-tauri/bin/centy-daemon-${{ matrix.daemon_target }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download daemon sidecar (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path src-tauri/bin
+          gh release download ${{ env.DAEMON_VERSION }} `
+            --repo centy-io/centy-daemon `
+            --pattern "centy-daemon-${{ env.DAEMON_VERSION }}-${{ matrix.daemon_target }}.${{ matrix.daemon_archive }}" `
+            --output daemon.${{ matrix.daemon_archive }}
+          Expand-Archive -Path daemon.${{ matrix.daemon_archive }} -DestinationPath .
+          Move-Item -Path "centy-daemon.exe" -Destination "src-tauri/bin/centy-daemon-${{ matrix.daemon_target }}.exe"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build frontend
         run: pnpm build:frontend
