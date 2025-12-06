@@ -1,0 +1,192 @@
+name: Release Desktop App
+
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: write
+
+jobs:
+  # Build daemon sidecar for all platforms
+  build-sidecar:
+    name: Build Sidecar (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+            sidecar_suffix: x86_64-unknown-linux-gnu
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            sidecar_suffix: x86_64-apple-darwin
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            sidecar_suffix: aarch64-apple-darwin
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            sidecar_suffix: x86_64-pc-windows-msvc
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            centy-daemon/target
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-sidecar-${{ hashFiles('centy-daemon/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-cargo-sidecar-
+
+      - name: Build daemon sidecar
+        run: cargo build --release --target ${{ matrix.target }}
+        working-directory: centy-daemon
+
+      - name: Upload sidecar (Unix)
+        if: matrix.os != 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sidecar-${{ matrix.sidecar_suffix }}
+          path: centy-daemon/target/${{ matrix.target }}/release/centy-daemon
+          retention-days: 1
+
+      - name: Upload sidecar (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sidecar-${{ matrix.sidecar_suffix }}
+          path: centy-daemon/target/${{ matrix.target }}/release/centy-daemon.exe
+          retention-days: 1
+
+  # Build Tauri desktop app
+  build-tauri:
+    name: Build Tauri (${{ matrix.platform }})
+    needs: build-sidecar
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            sidecar_suffix: x86_64-unknown-linux-gnu
+
+          - platform: macos-x86_64
+            os: macos-latest
+            target: x86_64-apple-darwin
+            sidecar_suffix: x86_64-apple-darwin
+            args: --target x86_64-apple-darwin
+
+          - platform: macos-aarch64
+            os: macos-latest
+            target: aarch64-apple-darwin
+            sidecar_suffix: aarch64-apple-darwin
+            args: --target aarch64-apple-darwin
+
+          - platform: windows
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            sidecar_suffix: x86_64-pc-windows-msvc
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-tauri-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-cargo-tauri-
+
+      - name: Install frontend dependencies
+        run: pnpm install
+        working-directory: centy-desktop
+
+      - name: Download sidecar
+        uses: actions/download-artifact@v4
+        with:
+          name: sidecar-${{ matrix.sidecar_suffix }}
+          path: centy-desktop/src-tauri/bin/
+
+      - name: Prepare sidecar (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          mv centy-desktop/src-tauri/bin/centy-daemon centy-desktop/src-tauri/bin/centy-daemon-${{ matrix.sidecar_suffix }}
+          chmod +x centy-desktop/src-tauri/bin/centy-daemon-${{ matrix.sidecar_suffix }}
+
+      - name: Prepare sidecar (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          Move-Item "centy-desktop/src-tauri/bin/centy-daemon.exe" "centy-desktop/src-tauri/bin/centy-daemon-${{ matrix.sidecar_suffix }}.exe"
+
+      - name: Build frontend
+        run: pnpm build:frontend
+        working-directory: centy-desktop
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: centy-desktop
+          tagName: ${{ github.ref_name }}
+          releaseName: "Centy Desktop ${{ github.ref_name }}"
+          releaseBody: |
+            ## Centy Desktop ${{ github.ref_name }}
+
+            Download the appropriate installer for your platform:
+
+            | Platform | Installer |
+            |----------|-----------|
+            | **macOS (Apple Silicon)** | `.dmg` (aarch64) |
+            | **macOS (Intel)** | `.dmg` (x86_64) |
+            | **Windows** | `.msi` or `.exe` |
+            | **Linux** | `.AppImage` or `.deb` |
+
+            ### Notes
+            - macOS users may need to right-click and select "Open" on first launch
+            - Linux `.AppImage` requires `chmod +x` before running
+          releaseDraft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          args: ${{ matrix.args }}
