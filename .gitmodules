@@ -1,6 +1,6 @@
 [submodule "centy-app"]
 	path = centy-app
-	url = https://github.com/tupe12334/centy-app.git
+	url = https://github.com/centy-io/centy-app.git
 [submodule "centy-daemon"]
 	path = centy-daemon
-	url = https://github.com/tupe12334/centy-daemon.git
+	url = https://github.com/centy-io/centy-daemon.git
