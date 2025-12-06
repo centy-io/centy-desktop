@@ -7,7 +7,7 @@
     "beforeDevCommand": "pnpm --filter centy-app dev",
     "devUrl": "http://localhost:5180",
     "beforeBuildCommand": "pnpm build:frontend",
-    "frontendDist": "../centy-app/dist"
+    "frontendDist": "../centy-app/out"
   },
   "app": {
     "withGlobalTauri": true,

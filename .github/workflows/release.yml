@@ -91,8 +91,9 @@ jobs:
             --repo centy-io/centy-daemon \
             --pattern "centy-daemon-${{ env.DAEMON_VERSION }}-${{ matrix.daemon_target }}.${{ matrix.daemon_archive }}" \
             --output daemon.${{ matrix.daemon_archive }}
-          tar -xzf daemon.${{ matrix.daemon_archive }}
-          mv centy-daemon src-tauri/bin/centy-daemon-${{ matrix.daemon_target }}
+          mkdir -p /tmp/daemon-extract
+          tar -xzf daemon.${{ matrix.daemon_archive }} -C /tmp/daemon-extract
+          mv /tmp/daemon-extract/centy-daemon src-tauri/bin/centy-daemon-${{ matrix.daemon_target }}
           chmod +x src-tauri/bin/centy-daemon-${{ matrix.daemon_target }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
