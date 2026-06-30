@@ -24,3 +24,11 @@ tokio = { version = "1", features = ["full"] }
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
+
+[lints.clippy]
+# Warn when a function/closure's last statement has a trailing expression
+# (no semicolon) but the value is discarded rather than returned, e.g. a
+# `()`-returning call as the last line of `fn main()`. This is inconsistent
+# with the rest of the function body and easy to misread as an intentional
+# tail-return. Caught here in build.rs's `tauri_build::build()` call.
+semicolon_if_nothing_returned = "warn"
