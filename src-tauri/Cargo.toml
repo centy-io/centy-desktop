@@ -24,3 +24,6 @@ tokio = { version = "1", features = ["full"] }
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
+
+[lints.clippy]
+uninlined_format_args = "warn"
