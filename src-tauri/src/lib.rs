@@ -36,11 +36,11 @@ async fn start_daemon_internal(app: &tauri::AppHandle, state: &tauri::State<'_, 
 
     let sidecar = shell
         .sidecar("centy-daemon")
-        .map_err(|e| format!("Failed to create sidecar command: {}", e))?;
+        .map_err(|e| format!("Failed to create sidecar command: {e}"))?;
 
     let (mut rx, child) = sidecar
         .spawn()
-        .map_err(|e| format!("Failed to spawn sidecar: {}", e))?;
+        .map_err(|e| format!("Failed to spawn sidecar: {e}"))?;
 
     // Store the child process
     *state.child.lock().unwrap() = Some(child);
@@ -59,7 +59,7 @@ async fn start_daemon_internal(app: &tauri::AppHandle, state: &tauri::State<'_, 
                     eprintln!("[daemon stderr] {}", String::from_utf8_lossy(&line));
                 }
                 CommandEvent::Error(error) => {
-                    eprintln!("[daemon error] {}", error);
+                    eprintln!("[daemon error] {error}");
                 }
                 CommandEvent::Terminated(payload) => {
                     println!("[daemon terminated] code: {:?}, signal: {:?}", payload.code, payload.signal);
@@ -90,7 +90,7 @@ pub fn run() {
             // Start daemon on app launch
             tauri::async_runtime::block_on(async {
                 if let Err(e) = start_daemon_internal(&app_handle, &state).await {
-                    eprintln!("Failed to start daemon: {}", e);
+                    eprintln!("Failed to start daemon: {e}");
                 } else {
                     println!("Daemon started successfully");
                 }

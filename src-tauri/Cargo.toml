@@ -26,6 +26,7 @@ default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
 
 [lints.clippy]
+uninlined_format_args = "warn"
 # Warn when a function/closure's last statement has a trailing expression
 # (no semicolon) but the value is discarded rather than returned, e.g. a
 # `()`-returning call as the last line of `fn main()`. This is inconsistent
